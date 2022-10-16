@@ -15,18 +15,18 @@ func New(tu taskUsecase) *Handler {
 	return &Handler{tu: tu}
 }
 
-func (h *Handler) Handle(update tgbotapi.Update) tgbotapi.Chattable {
+func (h *Handler) Handle(update tgbotapi.Update) (tgbotapi.Chattable, error) {
 	log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
 
 	newMessageText := update.Message.Text
 
 	err := h.tu.Add(newMessageText)
 	if err != nil {
-		panic(err)
+		return tgbotapi.MessageConfig{}, err
 	}
 	tasksList, err := h.tu.List()
 	if err != nil {
-		panic(err)
+		return tgbotapi.MessageConfig{}, err
 	}
 
 	messageText := ""
@@ -36,5 +36,5 @@ func (h *Handler) Handle(update tgbotapi.Update) tgbotapi.Chattable {
 	reply := tgbotapi.NewMessage(update.Message.Chat.ID, messageText)
 	reply.ReplyToMessageID = update.Message.MessageID
 
-	return reply
+	return reply, nil
 }

@@ -8,8 +8,13 @@ type Task struct {
 	Text string
 }
 
-func New() Storage {
-	return Storage{Cache: mustParseCache()}
+func New() (Storage, error) {
+	tasks, err := mustParseCache()
+	if err != nil {
+		return Storage{}, err
+	}
+
+	return Storage{Cache: tasks}, nil
 }
 
 func (c Storage) Add(message string) (err error) {

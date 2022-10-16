@@ -13,7 +13,7 @@ func (c *Cache) mustPutCache() error {
 	marshal, err := json.Marshal(c)
 
 	if err != nil {
-		panic(err)
+		return err
 	}
 	filename := "cache.json"
 
@@ -21,15 +21,15 @@ func (c *Cache) mustPutCache() error {
 
 }
 
-func mustParseCache() *Cache {
+func mustParseCache() (*Cache, error) {
 	filename := "cache.json"
 	body, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return &Cache{}
+		return &Cache{}, err
 	}
 	c := &Cache{}
 	if err := json.Unmarshal(body, c); err != nil {
-		panic(err)
+		return &Cache{}, err
 	}
-	return c
+	return c, nil
 }

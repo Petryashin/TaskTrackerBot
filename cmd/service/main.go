@@ -21,7 +21,10 @@ func main() {
 
 	tgApiKey := os.Getenv("TG_BOT_API_KEY")
 
-	cache := memory.New()
+	cache, err := memory.New()
+	if err != nil {
+		log.Print("Error loading cache")
+	}
 
 	taskUsecase := task.New(cache)
 
@@ -39,8 +42,13 @@ func main() {
 
 	for update := range updates {
 		if update.Message != nil { // If we got a message
-			msg := tgHandler.Handle(update)
-			bot.Send(msg)
+			msg, err := tgHandler.Handle(update)
+			if err != nil {
+				log.Print("Error tg Handle")
+			} else {
+				bot.Send(msg)
+			}
+
 		}
 	}
 }
