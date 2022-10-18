@@ -4,13 +4,14 @@ import (
 	"log"
 	"os"
 
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
 	"github.com/petryashin/TaskTrackerBot/cmd"
 	"github.com/petryashin/TaskTrackerBot/internal/handler/tg"
+	tgdto "github.com/petryashin/TaskTrackerBot/internal/handler/tg/dto"
+	tgstrategy "github.com/petryashin/TaskTrackerBot/internal/handler/tg/strategy"
 	"github.com/petryashin/TaskTrackerBot/internal/storage/memory"
 	"github.com/petryashin/TaskTrackerBot/internal/usecase/task"
-
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
 
 func main() {
@@ -28,6 +29,13 @@ func main() {
 
 	taskUsecase := task.New(cache)
 
+	strategies := tgstrategy.Strategies{
+		tgstrategy.NewMessageStrategy(cache),
+		tgstrategy.NewInlineStrategy(cache),
+	}
+
+	router := tgstrategy.New(strategies)
+
 	tgHandler := tg.New(taskUsecase)
 
 	bot := cmd.MustInitTgbot(tgApiKey)
@@ -41,14 +49,12 @@ func main() {
 	updates := bot.GetUpdatesChan(u)
 
 	for update := range updates {
-		if update.Message != nil { // If we got a message
-			msg, err := tgHandler.Handle(update)
-			if err != nil {
-				log.Print("Error tg Handle")
-			} else {
-				bot.Send(msg)
-			}
-
+		dto := tgdto.DtoFromTg(update)
+		msg, err := tgHandler.Handle(dto, router)
+		if err != nil {
+			log.Print("Error tg Handle")
+		} else {
+			bot.Send(msg)
 		}
 	}
 }
