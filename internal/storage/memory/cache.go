@@ -1,7 +1,9 @@
 package memory
 
+import "errors"
+
 type Storage struct {
-	Cache *Cache
+	Cache *commonCache
 }
 
 type Task struct {
@@ -11,18 +13,25 @@ type Task struct {
 func New() (Storage, error) {
 	tasks, err := mustParseCache()
 	if err != nil {
-		return Storage{Cache: &Cache{}}, err
+		return Storage{Cache: &commonCache{}}, err
 	}
 
 	return Storage{Cache: tasks}, nil
 }
 
-func (c Storage) Add(message string) (err error) {
-	c.Cache.Tasks = append(c.Cache.Tasks, Task{message})
-	c.Cache.mustPutCache()
-	return
+func (c Storage) Add(chatId int64, message string) error {
+	if _, ok := (*c.Cache)[chatId]; !ok {
+		(*c.Cache)[chatId] = Cache{}
+	}
+	if entry, ok := (*c.Cache)[chatId]; ok {
+		entry.Tasks = append(entry.Tasks, Task{message})
+		(*c.Cache)[chatId] = entry
+		c.Cache.mustPutCache()
+		return nil
+	}
+	return errors.New("Can't add field")
 }
 
-func (c Storage) List() ([]Task, error) {
-	return c.Cache.Tasks, nil
+func (c Storage) List(chatId int64) ([]Task, error) {
+	return (*c.Cache)[chatId].Tasks, nil
 }

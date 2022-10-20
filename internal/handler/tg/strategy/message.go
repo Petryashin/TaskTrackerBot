@@ -31,7 +31,7 @@ func (i MessageStrategy) Handle(dto tgdto.Dto) (tgbotapi.MessageConfig, error) {
 	switch action {
 	case addTask:
 		newMessageText := dto.MessageText
-		err := i.tasks.Add(newMessageText)
+		err := i.tasks.Add(dto.ChatId, newMessageText)
 		if err != nil {
 			return tgbotapi.MessageConfig{}, err
 		}
@@ -52,7 +52,7 @@ func (i MessageStrategy) Handle(dto tgdto.Dto) (tgbotapi.MessageConfig, error) {
 
 func (i MessageStrategy) messageBuilder(dto tgdto.Dto) (tgbotapi.MessageConfig, error) {
 	messageText := "Мои задачи:\n"
-	tasksList, err := i.tasks.List()
+	tasksList, err := i.tasks.List(dto.ChatId)
 	if err != nil {
 		return tgbotapi.MessageConfig{}, err
 	}

@@ -13,7 +13,6 @@ import (
 	tgstrategy "github.com/petryashin/TaskTrackerBot/internal/handler/tg/strategy"
 	"github.com/petryashin/TaskTrackerBot/internal/storage/memory"
 	rediscache "github.com/petryashin/TaskTrackerBot/internal/storage/redis"
-	"github.com/petryashin/TaskTrackerBot/internal/usecase/task"
 )
 
 func main() {
@@ -44,8 +43,6 @@ func main() {
 		log.Print("Error connecting redis")
 	}
 
-	taskUsecase := task.New(cache)
-
 	strategies := tgstrategy.Strategies{
 		tgstrategy.NewMessageStrategy(cache, redisCache),
 		tgstrategy.NewInlineStrategy(cache, redisCache),
@@ -53,7 +50,7 @@ func main() {
 
 	router := tgstrategy.New(strategies)
 
-	tgHandler := tg.New(taskUsecase)
+	tgHandler := tg.New()
 
 	bot := cmd.MustInitTgbot(tgApiKey)
 	bot.Debug = true

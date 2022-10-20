@@ -5,13 +5,13 @@ import (
 	"io/ioutil"
 )
 
-type commonCache map[int]Cache
+type commonCache map[int64]Cache
 
 type Cache struct {
 	Tasks []Task
 }
 
-func (c *Cache) mustPutCache() error {
+func (c *commonCache) mustPutCache() error {
 	marshal, err := json.Marshal(c)
 
 	if err != nil {
@@ -23,15 +23,15 @@ func (c *Cache) mustPutCache() error {
 
 }
 
-func mustParseCache() (*Cache, error) {
+func mustParseCache() (*commonCache, error) {
 	filename := "cache.json"
 	body, err := ioutil.ReadFile(filename)
 	if err != nil {
-		return &Cache{}, err
+		return &commonCache{}, err
 	}
-	c := &Cache{}
+	c := &commonCache{}
 	if err := json.Unmarshal(body, c); err != nil {
-		return &Cache{}, err
+		return &commonCache{}, err
 	}
 	return c, nil
 }

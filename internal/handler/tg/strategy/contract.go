@@ -15,8 +15,8 @@ type strategy interface {
 type Strategies []strategy
 
 type taskInterface interface {
-	Add(message string) (err error)
-	List() ([]memory.Task, error)
+	Add(chatId int64, message string) (err error)
+	List(chatId int64) ([]memory.Task, error)
 }
 
 type redisCacheInterface interface {
