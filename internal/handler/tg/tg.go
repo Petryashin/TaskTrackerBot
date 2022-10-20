@@ -19,7 +19,7 @@ func (h *Handler) Handle(dto tgdto.Dto, router tgstrategy.Router) (tgbotapi.Chat
 
 	strategy := router.ParseStrategy(dto)
 
-	reply := strategy.Handle(dto)
+	reply, _ := strategy.Handle(dto)
 
 	return reply, nil
 	// newMessageText := update.Message.Text

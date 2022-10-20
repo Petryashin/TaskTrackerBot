@@ -6,13 +6,20 @@ import (
 	"github.com/petryashin/TaskTrackerBot/internal/storage/memory"
 )
 
+const addTask, rmTask, list = "addTask", "rmTask", "list"
+
 type strategy interface {
-	Handle(tgdto.Dto) tgbotapi.MessageConfig
+	Handle(tgdto.Dto) (tgbotapi.MessageConfig, error)
 }
 
 type Strategies []strategy
 
-type cacheInterface interface {
+type taskInterface interface {
 	Add(message string) (err error)
 	List() ([]memory.Task, error)
+}
+
+type redisCacheInterface interface {
+	Set(key string, json string) error
+	Get(key string) (string, error)
 }

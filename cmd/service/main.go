@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 
+	redis "github.com/go-redis/redis"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/joho/godotenv"
 	"github.com/petryashin/TaskTrackerBot/cmd"
@@ -11,27 +12,43 @@ import (
 	tgdto "github.com/petryashin/TaskTrackerBot/internal/handler/tg/dto"
 	tgstrategy "github.com/petryashin/TaskTrackerBot/internal/handler/tg/strategy"
 	"github.com/petryashin/TaskTrackerBot/internal/storage/memory"
+	rediscache "github.com/petryashin/TaskTrackerBot/internal/storage/redis"
 	"github.com/petryashin/TaskTrackerBot/internal/usecase/task"
 )
 
 func main() {
+	log.Printf("App started!")
+
 	err := godotenv.Load()
 	if err != nil {
 		log.Print("Error loading .env file, fallback to env variables")
 	}
 
 	tgApiKey := os.Getenv("TG_BOT_API_KEY")
+	var redisPassword string = os.Getenv("REDIS_PASSWORD")
 
 	cache, err := memory.New()
 	if err != nil {
 		log.Print("Error loading cache")
 	}
 
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     "localhost:6379",
+		Password: redisPassword,
+		DB:       0,
+	})
+
+	redisCache := rediscache.New(redisClient)
+	_, err = redisClient.Ping().Result()
+	if err != nil {
+		log.Print("Error connecting redis")
+	}
+
 	taskUsecase := task.New(cache)
 
 	strategies := tgstrategy.Strategies{
-		tgstrategy.NewMessageStrategy(cache),
-		tgstrategy.NewInlineStrategy(cache),
+		tgstrategy.NewMessageStrategy(cache, redisCache),
+		tgstrategy.NewInlineStrategy(cache, redisCache),
 	}
 
 	router := tgstrategy.New(strategies)
