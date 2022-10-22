@@ -16,6 +16,7 @@ type Strategies []strategy
 
 type taskInterface interface {
 	Add(chatId int64, message string) (err error)
+	Remove(chatId int64, key int) error
 	List(chatId int64) ([]memory.Task, error)
 }
 

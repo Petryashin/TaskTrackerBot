@@ -32,6 +32,19 @@ func (c Storage) Add(chatId int64, message string) error {
 	return errors.New("Can't add field")
 }
 
+func (c Storage) Remove(chatId int64, key int) error {
+	if entry, ok := (*c.Cache)[chatId]; ok {
+		if key < 1 || key > len(entry.Tasks) {
+			return errors.New("Задачи с таким номером не существует")
+		}
+		entry.Tasks = append(entry.Tasks[:key-1], entry.Tasks[key:]...)
+		(*c.Cache)[chatId] = entry
+		c.Cache.mustPutCache()
+		return nil
+	}
+	return nil
+}
+
 func (c Storage) List(chatId int64) ([]Task, error) {
 	return (*c.Cache)[chatId].Tasks, nil
 }
