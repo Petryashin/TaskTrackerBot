@@ -63,12 +63,19 @@ func main() {
 	updates := bot.GetUpdatesChan(u)
 
 	for update := range updates {
-		dto := tgdto.DtoFromTg(update)
-		msg, err := tgHandler.Handle(dto, router)
-		if err != nil {
-			log.Print("Error tg Handle")
-		} else {
-			bot.Send(msg)
-		}
+		go handleUpdate(update, tgHandler, router, bot)
+	}
+}
+
+func handleUpdate(update tgbotapi.Update,
+	tgHandler *tg.Handler,
+	router tgstrategy.Router,
+	bot *tgbotapi.BotAPI) {
+	dto := tgdto.DtoFromTg(update)
+	msg, err := tgHandler.Handle(dto, router)
+	if err != nil {
+		log.Print("Error tg Handle")
+	} else {
+		bot.Send(msg)
 	}
 }
