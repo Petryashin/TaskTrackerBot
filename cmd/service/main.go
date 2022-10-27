@@ -41,6 +41,7 @@ func main() {
 	_, err = redisClient.Ping().Result()
 	if err != nil {
 		log.Print("Error connecting redis")
+		panic(err)
 	}
 
 	strategies := tgstrategy.Strategies{
@@ -61,20 +62,29 @@ func main() {
 	u.Timeout = 60
 
 	updates := bot.GetUpdatesChan(u)
+	chanErr := make(chan error)
 
-	for update := range updates {
-		go handleUpdate(update, tgHandler, router, bot)
+	for {
+		select {
+		case err := <-chanErr:
+			log.Print("Error tg Handle", err)
+		case update := <-updates:
+			go handleUpdate(update, tgHandler, router, bot, chanErr)
+		}
 	}
+
 }
 
-func handleUpdate(update tgbotapi.Update,
+func handleUpdate(
+	update tgbotapi.Update,
 	tgHandler *tg.Handler,
 	router tgstrategy.Router,
-	bot *tgbotapi.BotAPI) {
+	bot *tgbotapi.BotAPI,
+	chanErr chan error) {
 	dto := tgdto.DtoFromTg(update)
 	msg, err := tgHandler.Handle(dto, router)
 	if err != nil {
-		log.Print("Error tg Handle")
+		chanErr <- err
 	} else {
 		bot.Send(msg)
 	}
