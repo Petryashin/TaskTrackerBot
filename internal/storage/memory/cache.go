@@ -11,7 +11,7 @@ type Task struct {
 func New() (Storage, error) {
 	tasks, err := mustParseCache()
 	if err != nil {
-		return Storage{}, err
+		return Storage{Cache: &Cache{}}, err
 	}
 
 	return Storage{Cache: tasks}, nil

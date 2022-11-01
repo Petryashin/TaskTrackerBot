@@ -1,0 +1,28 @@
+version: '3'
+services:
+  go:
+    image: backend
+    build:
+      dockerfile: dockerfile
+      context: .
+    # volumes:
+      # - ./:/usr/src/app
+    depends_on:
+      - redis
+    environment:
+      - TG_BOT_API_KEY=${TG_BOT_API_KEY}
+  redis:
+      image: "redis:alpine"
+
+      command: redis-server --requirepass ${REDIS_PASSWORD}
+
+      ports:
+      - "6379:6379"
+
+      volumes:
+      - redis-volume-bot:/var/lib/redis
+
+      environment:
+      - REDIS_REPLICATION_MODE=master
+volumes:
+  redis-volume-bot:

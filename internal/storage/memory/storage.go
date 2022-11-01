@@ -5,6 +5,8 @@ import (
 	"io/ioutil"
 )
 
+type commonCache map[int]Cache
+
 type Cache struct {
 	Tasks []Task
 }
