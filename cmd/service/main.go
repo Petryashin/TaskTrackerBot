@@ -13,7 +13,6 @@ import (
 	tgstrategy "github.com/petryashin/TaskTrackerBot/internal/handler/tg/strategy"
 	"github.com/petryashin/TaskTrackerBot/internal/storage/memory"
 	rediscache "github.com/petryashin/TaskTrackerBot/internal/storage/redis"
-	"github.com/petryashin/TaskTrackerBot/internal/usecase/task"
 )
 
 func main() {
@@ -42,9 +41,8 @@ func main() {
 	_, err = redisClient.Ping().Result()
 	if err != nil {
 		log.Print("Error connecting redis")
+		panic(err)
 	}
-
-	taskUsecase := task.New(cache)
 
 	strategies := tgstrategy.Strategies{
 		tgstrategy.NewMessageStrategy(cache, redisCache),
@@ -53,7 +51,7 @@ func main() {
 
 	router := tgstrategy.New(strategies)
 
-	tgHandler := tg.New(taskUsecase)
+	tgHandler := tg.New()
 
 	bot := cmd.MustInitTgbot(tgApiKey)
 	bot.Debug = true
@@ -64,14 +62,42 @@ func main() {
 	u.Timeout = 60
 
 	updates := bot.GetUpdatesChan(u)
+	chanErr := make(chan error)
 
-	for update := range updates {
-		dto := tgdto.DtoFromTg(update)
-		msg, err := tgHandler.Handle(dto, router)
-		if err != nil {
-			log.Print("Error tg Handle")
-		} else {
-			bot.Send(msg)
+	for {
+		select {
+		case err := <-chanErr:
+			log.Print("Error tg Handle", err)
+		case update := <-updates:
+			go handleUpdate(update, tgHandler, router, bot, chanErr)
 		}
+	}
+
+}
+
+func handleUpdate(
+	update tgbotapi.Update,
+	tgHandler *tg.Handler,
+	router tgstrategy.Router,
+	bot *tgbotapi.BotAPI,
+	chanErr chan error) {
+
+	dto := tgdto.DtoFromTg(update)
+
+	//TODO: перепроектировать handling
+	if dto.MessageType == tgdto.MessageTypeInline {
+		go func() {
+			callback := tgbotapi.NewCallback(update.CallbackQuery.ID, update.CallbackQuery.Data)
+			if _, err := bot.Request(callback); err != nil {
+				chanErr <- err
+			}
+		}()
+	}
+
+	msg, err := tgHandler.Handle(dto, router)
+	if err != nil {
+		chanErr <- err
+	} else {
+		bot.Send(msg)
 	}
 }

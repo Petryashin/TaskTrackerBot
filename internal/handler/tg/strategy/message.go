@@ -2,6 +2,7 @@ package tgstrategy
 
 import (
 	"fmt"
+	"strconv"
 
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	tgdto "github.com/petryashin/TaskTrackerBot/internal/handler/tg/dto"
@@ -31,7 +32,7 @@ func (i MessageStrategy) Handle(dto tgdto.Dto) (tgbotapi.MessageConfig, error) {
 	switch action {
 	case addTask:
 		newMessageText := dto.MessageText
-		err := i.tasks.Add(newMessageText)
+		err := i.tasks.Add(dto.ChatId, newMessageText)
 		if err != nil {
 			return tgbotapi.MessageConfig{}, err
 		}
@@ -40,9 +41,19 @@ func (i MessageStrategy) Handle(dto tgdto.Dto) (tgbotapi.MessageConfig, error) {
 
 		return i.messageBuilder(dto)
 	case rmTask:
-		i.setDefaultState(dto)
+		taskNumber, err := strconv.Atoi(dto.MessageText)
+		if err != nil {
+			return tgbotapi.NewMessage(dto.ChatId, "Введите номер задачи"), err
+		} else {
 
-		return i.messageBuilder(dto)
+			err = i.tasks.Remove(dto.ChatId, taskNumber)
+			if err != nil {
+				return tgbotapi.NewMessage(dto.ChatId, "Введите корректный номер задачи"), err
+			} else {
+				i.setDefaultState(dto)
+				return i.messageBuilder(dto)
+			}
+		}
 	case list:
 		return i.messageBuilder(dto)
 	default:
@@ -52,7 +63,7 @@ func (i MessageStrategy) Handle(dto tgdto.Dto) (tgbotapi.MessageConfig, error) {
 
 func (i MessageStrategy) messageBuilder(dto tgdto.Dto) (tgbotapi.MessageConfig, error) {
 	messageText := "Мои задачи:\n"
-	tasksList, err := i.tasks.List()
+	tasksList, err := i.tasks.List(dto.ChatId)
 	if err != nil {
 		return tgbotapi.MessageConfig{}, err
 	}
