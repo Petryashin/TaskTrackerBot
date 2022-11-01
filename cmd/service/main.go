@@ -81,7 +81,19 @@ func handleUpdate(
 	router tgstrategy.Router,
 	bot *tgbotapi.BotAPI,
 	chanErr chan error) {
+
 	dto := tgdto.DtoFromTg(update)
+
+	//TODO: перепроектировать handling
+	if dto.MessageType == tgdto.MessageTypeInline {
+		go func() {
+			callback := tgbotapi.NewCallback(update.CallbackQuery.ID, update.CallbackQuery.Data)
+			if _, err := bot.Request(callback); err != nil {
+				chanErr <- err
+			}
+		}()
+	}
+
 	msg, err := tgHandler.Handle(dto, router)
 	if err != nil {
 		chanErr <- err
