@@ -5,15 +5,15 @@ services:
     build:
       dockerfile: dockerfile
       context: .
-    # volumes:
-      # - ./:/usr/src/app
     depends_on:
       - redis
+      - db
     environment:
       - TG_BOT_API_KEY=${TG_BOT_API_KEY}
+
   redis:
       image: "redis:alpine"
-
+      restart: always
       command: redis-server --requirepass ${REDIS_PASSWORD}
 
       ports:
@@ -24,5 +24,27 @@ services:
 
       environment:
       - REDIS_REPLICATION_MODE=master
+
+  db:
+    image: postgres:latest
+    restart: always
+    ports:
+      - 5432:5432
+    volumes:
+      - pgx-volume-bot:/var/lib/postgresql
+    environment:
+      - POSTGRES_DB=app
+      - POSTGRES_USER=app
+      - POSTGRES_PASSWORD=app
+  pgadmin:
+    container_name: pgadmin4_container
+    image: dpage/pgadmin4
+    restart: always
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@admin.com
+      PGADMIN_DEFAULT_PASSWORD: root
+    ports:
+      - "5050:80"
 volumes:
   redis-volume-bot:
+  pgx-volume-bot:

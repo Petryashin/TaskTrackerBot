@@ -1,13 +1,13 @@
 package main
 
 import (
+	"fmt"
 	"log"
-	"os"
 
 	redis "github.com/go-redis/redis"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/joho/godotenv"
 	"github.com/petryashin/TaskTrackerBot/cmd"
+	"github.com/petryashin/TaskTrackerBot/internal/config"
 	"github.com/petryashin/TaskTrackerBot/internal/handler/tg"
 	tgdto "github.com/petryashin/TaskTrackerBot/internal/handler/tg/dto"
 	tgstrategy "github.com/petryashin/TaskTrackerBot/internal/handler/tg/strategy"
@@ -18,13 +18,8 @@ import (
 func main() {
 	log.Printf("App started!")
 
-	err := godotenv.Load()
-	if err != nil {
-		log.Print("Error loading .env file, fallback to env variables")
-	}
-
-	tgApiKey := os.Getenv("TG_BOT_API_KEY")
-	var redisPassword string = os.Getenv("REDIS_PASSWORD")
+	config := config.GetConfig()
+	fmt.Printf("%+v\n", config)
 
 	cache, err := memory.New()
 	if err != nil {
@@ -33,7 +28,7 @@ func main() {
 
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
-		Password: redisPassword,
+		Password: config.Redis.Password,
 		DB:       0,
 	})
 
@@ -53,7 +48,7 @@ func main() {
 
 	tgHandler := tg.New()
 
-	bot := cmd.MustInitTgbot(tgApiKey)
+	bot := cmd.MustInitTgbot(config.TgBot.BotApiKey)
 	bot.Debug = true
 
 	log.Printf("Authorized on account %s", bot.Self.UserName)
