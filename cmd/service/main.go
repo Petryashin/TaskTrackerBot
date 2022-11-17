@@ -1,7 +1,14 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	postgresql "github.com/petryashin/TaskTrackerBot/internal/client/db/pgx"
+	task "github.com/petryashin/TaskTrackerBot/internal/domain/entity/task/db"
+	user "github.com/petryashin/TaskTrackerBot/internal/domain/entity/user/db"
+	task_usecase "github.com/petryashin/TaskTrackerBot/internal/usecase/task"
+	tg_parse_update "github.com/petryashin/TaskTrackerBot/internal/usecase/tg"
+	user_usecase "github.com/petryashin/TaskTrackerBot/internal/usecase/user"
 	"log"
 
 	redis "github.com/go-redis/redis"
@@ -11,7 +18,6 @@ import (
 	"github.com/petryashin/TaskTrackerBot/internal/handler/tg"
 	tgdto "github.com/petryashin/TaskTrackerBot/internal/handler/tg/dto"
 	tgstrategy "github.com/petryashin/TaskTrackerBot/internal/handler/tg/strategy"
-	"github.com/petryashin/TaskTrackerBot/internal/storage/memory"
 	rediscache "github.com/petryashin/TaskTrackerBot/internal/storage/redis"
 )
 
@@ -21,10 +27,22 @@ func main() {
 	config := config.GetConfig()
 	fmt.Printf("%+v\n", config)
 
-	cache, err := memory.New()
+	//cache, err := memory.New()
+	//if err != nil {
+	//	log.Print("Error loading cache")
+	//}
+	postgreSQLClient, err := postgresql.NewClient(context.TODO(), 3, config.Pgx)
 	if err != nil {
-		log.Print("Error loading cache")
+		fmt.Printf("%v", err)
 	}
+
+	userRepository := user.NewRepository(postgreSQLClient)
+	taskRepository := task.NewRepository(postgreSQLClient)
+
+	userUsecase := user_usecase.NewUserUsecase(userRepository, context.TODO())
+	taskUsecase := task_usecase.NewTaskUsecase(taskRepository, context.TODO())
+
+	tgUpdateParser := tg_parse_update.CreateTgUpdateParser(userUsecase)
 
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
@@ -40,8 +58,8 @@ func main() {
 	}
 
 	strategies := tgstrategy.Strategies{
-		tgstrategy.NewMessageStrategy(cache, redisCache),
-		tgstrategy.NewInlineStrategy(cache, redisCache),
+		tgstrategy.NewMessageStrategy(taskUsecase, userUsecase, redisCache),
+		tgstrategy.NewInlineStrategy(taskUsecase, userUsecase, redisCache),
 	}
 
 	router := tgstrategy.New(strategies)
@@ -64,7 +82,7 @@ func main() {
 		case err := <-chanErr:
 			log.Print("Error tg Handle", err)
 		case update := <-updates:
-			go handleUpdate(update, tgHandler, router, bot, chanErr)
+			go handleUpdate(update, tgHandler, router, bot, tgUpdateParser, chanErr)
 		}
 	}
 
@@ -75,12 +93,16 @@ func handleUpdate(
 	tgHandler *tg.Handler,
 	router tgstrategy.Router,
 	bot *tgbotapi.BotAPI,
+	tgUpdateParser tg_parse_update.TgUpdateParser,
 	chanErr chan error) {
 
-	dto := tgdto.DtoFromTg(update)
-
+	dto, err := tgUpdateParser.Parse(update)
+	if err != nil {
+		chanErr <- err
+		return
+	}
 	//TODO: перепроектировать handling
-	if dto.MessageType == tgdto.MessageTypeInline {
+	if dto.System.MessageType == tgdto.MessageTypeInline {
 		go func() {
 			callback := tgbotapi.NewCallback(update.CallbackQuery.ID, update.CallbackQuery.Data)
 			if _, err := bot.Request(callback); err != nil {

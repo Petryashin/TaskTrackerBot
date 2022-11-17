@@ -7,33 +7,34 @@ import (
 
 type InlineStrategy struct {
 	tasks      taskInterface
+	users      userInterface
 	redisCache redisCacheInterface
 }
 
-func NewInlineStrategy(tasks taskInterface, redisCache redisCacheInterface) InlineStrategy {
-	return InlineStrategy{tasks: tasks, redisCache: redisCache}
+func NewInlineStrategy(tasks taskInterface, users userInterface, redisCache redisCacheInterface) InlineStrategy {
+	return InlineStrategy{tasks: tasks, users: users, redisCache: redisCache}
 }
 
-func (i InlineStrategy) Handle(dto tgdto.Dto) (tgbotapi.MessageConfig, error) {
-	state := dto.MessageText
+func (i InlineStrategy) Handle(dto tgdto.DTO) (tgbotapi.MessageConfig, error) {
+	state := dto.System.MessageText
 	i.setState(dto, state)
 	switch state {
 	case addTask:
-		msg := tgbotapi.NewMessage(dto.ChatId, "Напишите текст задачи")
+		msg := tgbotapi.NewMessage(dto.System.ChatId, "Напишите текст задачи")
 		return msg, nil
 	case rmTask:
-		msg := tgbotapi.NewMessage(dto.ChatId, "Напишите номер задачи, которую нужно удалить")
+		msg := tgbotapi.NewMessage(dto.System.ChatId, "Напишите номер задачи, которую нужно удалить")
 		return msg, nil
 	}
-	msg := tgbotapi.NewMessage(dto.ChatId, dto.MessageText)
+	msg := tgbotapi.NewMessage(dto.System.ChatId, dto.System.MessageText)
 
 	return msg, nil
 }
 
-func (i InlineStrategy) setDefaultState(dto tgdto.Dto) error {
-	return i.redisCache.Set(int64toA(dto.ChatId), list)
+func (i InlineStrategy) setDefaultState(dto tgdto.DTO) error {
+	return i.redisCache.Set(int64toA(dto.System.ChatId), list)
 }
 
-func (i InlineStrategy) setState(dto tgdto.Dto, state string) error {
-	return i.redisCache.Set(int64toA(dto.ChatId), state)
+func (i InlineStrategy) setState(dto tgdto.DTO, state string) error {
+	return i.redisCache.Set(int64toA(dto.System.ChatId), state)
 }

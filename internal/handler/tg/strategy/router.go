@@ -12,6 +12,6 @@ func New(strategies Strategies) Router {
 	return Router{strategies: strategies}
 }
 
-func (r Router) ParseStrategy(dto tgdto.Dto) strategy {
-	return r.strategies[dto.MessageType]
+func (r Router) ParseStrategy(dto tgdto.DTO) strategy {
+	return r.strategies[dto.System.MessageType]
 }
