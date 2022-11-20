@@ -5,7 +5,7 @@ import (
 	"github.com/petryashin/TaskTrackerBot/internal/domain/entity/task"
 )
 
-type Repository interface {
+type TaskRepository interface {
 	Create(ctx context.Context, task *task.Task) error
 	FindAllByUserID(ctx context.Context, id string) (task []task.Task, err error)
 	//FindOne(ctx context.Context, id string) (task.Task, error)

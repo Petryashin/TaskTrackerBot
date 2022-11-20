@@ -10,11 +10,11 @@ import (
 	"github.com/petryashin/TaskTrackerBot/internal/domain/entity/user"
 )
 
-type repository struct {
+type userRepository struct {
 	client postgresql.Client
 }
 
-func (r repository) Create(ctx context.Context, user *user.User) error {
+func (r userRepository) Create(ctx context.Context, user *user.User) error {
 	q := `
 		INSERT INTO users 
 		    (telegram_id, "name") 
@@ -35,7 +35,7 @@ func (r repository) Create(ctx context.Context, user *user.User) error {
 
 	return nil
 }
-func (r repository) FindOne(ctx context.Context, id string) (user.User, error) {
+func (r userRepository) FindOne(ctx context.Context, id string) (user.User, error) {
 	q := `
 		SELECT id,telegram_id,"name" FROM users WHERE id = $1
 	`
@@ -45,7 +45,7 @@ func (r repository) FindOne(ctx context.Context, id string) (user.User, error) {
 	}
 	return usr, nil
 }
-func (r repository) FindOneByTgId(ctx context.Context, id string) (user.User, error) {
+func (r userRepository) FindOneByTgId(ctx context.Context, id string) (user.User, error) {
 	q := `
 		SELECT id,telegram_id,"name" FROM users WHERE telegram_id = $1
 	`
@@ -55,7 +55,7 @@ func (r repository) FindOneByTgId(ctx context.Context, id string) (user.User, er
 	}
 	return usr, nil
 }
-func (r repository) Update(ctx context.Context, user user.User) error {
+func (r userRepository) Update(ctx context.Context, user user.User) error {
 	q := `
 		UPDATE users
 		SET "name" = $2
@@ -64,6 +64,6 @@ func (r repository) Update(ctx context.Context, user user.User) error {
 	_, err := r.client.Exec(ctx, q, user.TgId, user.Name)
 	return err
 }
-func NewRepository(client postgresql.Client) Repository {
-	return repository{client: client}
+func NewRepository(client postgresql.Client) UserRepository {
+	return userRepository{client: client}
 }

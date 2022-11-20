@@ -9,11 +9,11 @@ import (
 	"github.com/petryashin/TaskTrackerBot/internal/domain/entity/task"
 )
 
-type repository struct {
+type taskRepository struct {
 	client postgresql.Client
 }
 
-func (r repository) Create(ctx context.Context, task *task.Task) error {
+func (r taskRepository) Create(ctx context.Context, task *task.Task) error {
 	var q = `
 		INSERT INTO tasks 
 		    (user_id, "text") 
@@ -34,7 +34,7 @@ func (r repository) Create(ctx context.Context, task *task.Task) error {
 
 	return nil
 }
-func (r repository) FindAllByUserID(ctx context.Context, id string) (tasks []task.Task, err error) {
+func (r taskRepository) FindAllByUserID(ctx context.Context, id string) (tasks []task.Task, err error) {
 	q := `
 		SELECT id, user_id, text FROM tasks WHERE user_id = $1;
 	`
@@ -51,7 +51,7 @@ func (r repository) FindAllByUserID(ctx context.Context, id string) (tasks []tas
 	}
 	return
 }
-func (r repository) Update(ctx context.Context, task task.Task) error {
+func (r taskRepository) Update(ctx context.Context, task task.Task) error {
 	q := `
 		UPDATE tasks
 		SET "text" = $2
@@ -60,7 +60,7 @@ func (r repository) Update(ctx context.Context, task task.Task) error {
 	_, err := r.client.Exec(ctx, q, task.Id, task.Text)
 	return err
 }
-func (r repository) Delete(ctx context.Context, id string) error {
+func (r taskRepository) Delete(ctx context.Context, id string) error {
 	q := `
 		DELETE FROM  tasks
 		WHERE id = $1;
@@ -69,6 +69,6 @@ func (r repository) Delete(ctx context.Context, id string) error {
 	return err
 }
 
-func NewRepository(client postgresql.Client) Repository {
-	return repository{client: client}
+func NewRepository(client postgresql.Client) TaskRepository {
+	return taskRepository{client: client}
 }

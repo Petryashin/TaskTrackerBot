@@ -14,7 +14,7 @@ type TaskInterface interface {
 }
 
 type taskUsecase struct {
-	r   taskdb.Repository
+	r   taskdb.TaskRepository
 	ctx *context.Context
 }
 
@@ -27,6 +27,6 @@ func (t taskUsecase) Remove(taskId int64) error {
 func (t taskUsecase) List(userId int64) ([]task.Task, error) {
 	return t.r.FindAllByUserID(*t.ctx, strconv.FormatInt(userId, 10))
 }
-func NewTaskUsecase(taskRepository taskdb.Repository, ctx context.Context) TaskInterface {
+func NewTaskUsecase(taskRepository taskdb.TaskRepository, ctx context.Context) TaskInterface {
 	return taskUsecase{r: taskRepository, ctx: &ctx}
 }

@@ -9,7 +9,7 @@ import (
 type Handler struct {
 }
 
-func New() *Handler {
+func NewHandler() *Handler {
 	return &Handler{}
 }
 

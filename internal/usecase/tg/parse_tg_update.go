@@ -40,7 +40,7 @@ func (t TgUpdateParser) Parse(update tgbotapi.Update) (tgdto.DTO, error) {
 func (t TgUpdateParser) firstOrCreateUser(dto tgdto.SystemDTO) (user.User, error) {
 	usr, err := t.users.FindOneByTgId(dto.ChatId)
 	if err != nil {
-		usr, err = t.users.Create(dto.ChatId, "TODO:Add name to DTO")
+		usr, err = t.users.Create(dto.ChatId, dto.UserName)
 		if err != nil {
 			return user.User{}, err
 		}

@@ -8,7 +8,7 @@ type Router struct {
 	strategies Strategies
 }
 
-func New(strategies Strategies) Router {
+func NewRouter(strategies Strategies) Router {
 	return Router{strategies: strategies}
 }
 

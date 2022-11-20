@@ -16,7 +16,7 @@ type UserInterface interface {
 }
 
 type userUsecase struct {
-	r   userdb.Repository
+	r   userdb.UserRepository
 	ctx *context.Context
 }
 
@@ -39,6 +39,6 @@ func (u userUsecase) FindOne(id int64) (user.User, error) {
 func (u userUsecase) FindOneByTgId(id int64) (user.User, error) {
 	return u.r.FindOneByTgId(*u.ctx, strconv.FormatInt(id, 10))
 }
-func NewUserUsecase(userRepository userdb.Repository, ctx context.Context) UserInterface {
+func NewUserUsecase(userRepository userdb.UserRepository, ctx context.Context) UserInterface {
 	return userUsecase{r: userRepository, ctx: &ctx}
 }
