@@ -1,38 +1,51 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	postgresql "github.com/petryashin/TaskTrackerBot/internal/client/db/pgx"
+	"github.com/petryashin/TaskTrackerBot/internal/config"
+	task "github.com/petryashin/TaskTrackerBot/internal/domain/entity/task/db"
+	user "github.com/petryashin/TaskTrackerBot/internal/domain/entity/user/db"
+	task_usecase "github.com/petryashin/TaskTrackerBot/internal/usecase/task"
+	tg_parse_update "github.com/petryashin/TaskTrackerBot/internal/usecase/tg"
+	user_usecase "github.com/petryashin/TaskTrackerBot/internal/usecase/user"
 	"log"
 
 	redis "github.com/go-redis/redis"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/petryashin/TaskTrackerBot/cmd"
-	"github.com/petryashin/TaskTrackerBot/internal/config"
 	"github.com/petryashin/TaskTrackerBot/internal/handler/tg"
 	tgdto "github.com/petryashin/TaskTrackerBot/internal/handler/tg/dto"
 	tgstrategy "github.com/petryashin/TaskTrackerBot/internal/handler/tg/strategy"
-	"github.com/petryashin/TaskTrackerBot/internal/storage/memory"
 	rediscache "github.com/petryashin/TaskTrackerBot/internal/storage/redis"
 )
 
 func main() {
 	log.Printf("App started!")
 
-	config := config.GetConfig()
-	fmt.Printf("%+v\n", config)
+	configs := config.GetConfig()
 
-	cache, err := memory.New()
+	pgxClient, err := postgresql.MustInitPostgres(context.TODO(), 3, configs.Pgx)
 	if err != nil {
-		log.Print("Error loading cache")
+		fmt.Printf("%v", err)
 	}
+
+	userRepository := user.NewRepository(pgxClient)
+	taskRepository := task.NewRepository(pgxClient)
+
+	userUsecase := user_usecase.NewUserUsecase(userRepository, context.TODO())
+	taskUsecase := task_usecase.NewTaskUsecase(taskRepository, context.TODO())
+
+	tgUpdateParser := tg_parse_update.CreateTgUpdateParser(userUsecase)
 
 	redisClient := redis.NewClient(&redis.Options{
 		Addr:     "localhost:6379",
-		Password: config.Redis.Password,
+		Password: configs.Redis.Password,
 		DB:       0,
 	})
 
-	redisCache := rediscache.New(redisClient)
+	redisCache := rediscache.NewRedisCache(redisClient)
 	_, err = redisClient.Ping().Result()
 	if err != nil {
 		log.Print("Error connecting redis")
@@ -40,15 +53,15 @@ func main() {
 	}
 
 	strategies := tgstrategy.Strategies{
-		tgstrategy.NewMessageStrategy(cache, redisCache),
-		tgstrategy.NewInlineStrategy(cache, redisCache),
+		tgstrategy.NewMessageStrategy(taskUsecase, userUsecase, redisCache),
+		tgstrategy.NewInlineStrategy(taskUsecase, userUsecase, redisCache),
 	}
 
-	router := tgstrategy.New(strategies)
+	router := tgstrategy.NewRouter(strategies)
 
-	tgHandler := tg.New()
+	tgHandler := tg.NewHandler()
 
-	bot := cmd.MustInitTgbot(config.TgBot.BotApiKey)
+	bot := cmd.MustInitTgbot(configs.TgBot.BotApiKey)
 	bot.Debug = true
 
 	log.Printf("Authorized on account %s", bot.Self.UserName)
@@ -62,9 +75,9 @@ func main() {
 	for {
 		select {
 		case err := <-chanErr:
-			log.Print("Error tg Handle", err)
+			log.Print("error tg Handle", err)
 		case update := <-updates:
-			go handleUpdate(update, tgHandler, router, bot, chanErr)
+			go handleUpdate(update, tgHandler, router, bot, tgUpdateParser, chanErr)
 		}
 	}
 
@@ -75,12 +88,16 @@ func handleUpdate(
 	tgHandler *tg.Handler,
 	router tgstrategy.Router,
 	bot *tgbotapi.BotAPI,
+	tgUpdateParser tg_parse_update.TgUpdateParser,
 	chanErr chan error) {
 
-	dto := tgdto.DtoFromTg(update)
-
+	dto, err := tgUpdateParser.Parse(update)
+	if err != nil {
+		chanErr <- err
+		return
+	}
 	//TODO: перепроектировать handling
-	if dto.MessageType == tgdto.MessageTypeInline {
+	if dto.System.MessageType == tgdto.MessageTypeInline {
 		go func() {
 			callback := tgbotapi.NewCallback(update.CallbackQuery.ID, update.CallbackQuery.Data)
 			if _, err := bot.Request(callback); err != nil {
@@ -93,6 +110,9 @@ func handleUpdate(
 	if err != nil {
 		chanErr <- err
 	} else {
-		bot.Send(msg)
+		_, err = bot.Send(msg)
+		if err != nil {
+			chanErr <- err
+		}
 	}
 }

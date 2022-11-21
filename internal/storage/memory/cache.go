@@ -10,7 +10,7 @@ type Task struct {
 	Text string
 }
 
-func New() (Storage, error) {
+func NewStorage() (Storage, error) {
 	tasks, err := mustParseCache()
 	if err != nil {
 		return Storage{Cache: &commonCache{}}, err

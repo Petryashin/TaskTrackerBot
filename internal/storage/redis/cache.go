@@ -8,9 +8,10 @@ type RedisCache struct {
 	client *redis.Client
 }
 
-func New(redisClient *redis.Client) RedisCache {
-	return RedisCache{client: redisClient}
+func NewRedisCache(client *redis.Client) RedisCache {
+	return RedisCache{client: client}
 }
+
 func (rc RedisCache) Set(key string, json string) error {
 	return rc.client.Set(key, json, 0).Err()
 }
