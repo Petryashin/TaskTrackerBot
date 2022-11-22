@@ -1,19 +1,15 @@
 package tgstrategy
 
 import (
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/petryashin/TaskTrackerBot/internal/domain/entity/task"
 	"github.com/petryashin/TaskTrackerBot/internal/domain/entity/user"
-	tgdto "github.com/petryashin/TaskTrackerBot/internal/handler/tg/dto"
 )
 
-const addTask, rmTask, list = "addTask", "rmTask", "list"
-
-type strategy interface {
-	Handle(dto tgdto.DTO) (tgbotapi.MessageConfig, error)
-}
-
-type Strategies []strategy
+const (
+	addTask = "addTask"
+	rmTask  = "rmTask"
+	list    = "list"
+)
 
 type taskInterface interface {
 	Add(userId int64, message string) (err error)
