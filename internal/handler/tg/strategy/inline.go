@@ -1,40 +1,44 @@
 package tgstrategy
 
 import (
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	tgdto "github.com/petryashin/TaskTrackerBot/internal/handler/tg/dto"
+	inline_action "github.com/petryashin/TaskTrackerBot/internal/handler/tg/strategy/action/inline"
+	strategy_constant "github.com/petryashin/TaskTrackerBot/internal/handler/tg/strategy/constant"
 )
 
 type InlineStrategy struct {
-	tasks      taskInterface
-	users      userInterface
-	redisCache redisCacheInterface
+	actions    Actions
+	tasks      TaskInterface
+	users      UserInterface
+	redisCache RedisCacheInterface
 }
 
-func NewInlineStrategy(tasks taskInterface, users userInterface, redisCache redisCacheInterface) InlineStrategy {
-	return InlineStrategy{tasks: tasks, users: users, redisCache: redisCache}
+func NewInlineStrategy(tasks TaskInterface, users UserInterface, redisCache RedisCacheInterface) InlineStrategy {
+	actions := createInlineStrategyActions(tasks, users, redisCache)
+	return InlineStrategy{actions: actions, tasks: tasks, users: users, redisCache: redisCache}
 }
-
-func (i InlineStrategy) Handle(dto tgdto.DTO) (tgbotapi.MessageConfig, error) {
-	state := dto.System.MessageText
-	i.setState(dto, state)
-	switch state {
-	case addTask:
-		msg := tgbotapi.NewMessage(dto.System.ChatId, "Напишите текст задачи")
-		return msg, nil
-	case rmTask:
-		msg := tgbotapi.NewMessage(dto.System.ChatId, "Напишите номер задачи, которую нужно удалить")
-		return msg, nil
+func createInlineStrategyActions(tasks TaskInterface, users UserInterface, redisCache RedisCacheInterface) Actions {
+	return Actions{
+		strategy_constant.AddTask: inline_action.NewAddTaskAction(),
+		strategy_constant.RmTask:  inline_action.NewRemoveTaskAction(),
 	}
-	msg := tgbotapi.NewMessage(dto.System.ChatId, dto.System.MessageText)
-
-	return msg, nil
 }
 
-func (i InlineStrategy) setDefaultState(dto tgdto.DTO) error {
-	return i.redisCache.Set(int64toA(dto.System.ChatId), list)
+func (i InlineStrategy) Handle(dto tgdto.DTO) (tgdto.ReplyDTO, error) {
+	action := dto.System.MessageText
+	i.setState(dto.User.TgId, action)
+
+	actionDTO, _ := i.actions[action].Handle(dto)
+
+	//i.setState(dto.User.TgId, actionDTO.NewState)
+
+	return tgdto.ReplyDTO{ChatId: dto.User.TgId,
+		Reply: tgdto.Reply{
+			Message:  actionDTO.ReplyText,
+			Keyboard: actionDTO.ReplyKeyboard,
+		}}, nil
 }
 
-func (i InlineStrategy) setState(dto tgdto.DTO, state string) error {
-	return i.redisCache.Set(int64toA(dto.System.ChatId), state)
+func (i InlineStrategy) setState(chatId int64, state string) error {
+	return i.redisCache.Set(int64toA(chatId), state)
 }

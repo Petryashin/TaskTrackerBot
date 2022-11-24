@@ -7,6 +7,7 @@ import (
 	"github.com/petryashin/TaskTrackerBot/internal/config"
 	task "github.com/petryashin/TaskTrackerBot/internal/domain/entity/task/db"
 	user "github.com/petryashin/TaskTrackerBot/internal/domain/entity/user/db"
+	tgrouter "github.com/petryashin/TaskTrackerBot/internal/handler/tg/router"
 	task_usecase "github.com/petryashin/TaskTrackerBot/internal/usecase/task"
 	tg_parse_update "github.com/petryashin/TaskTrackerBot/internal/usecase/tg"
 	user_usecase "github.com/petryashin/TaskTrackerBot/internal/usecase/user"
@@ -52,12 +53,9 @@ func main() {
 		panic(err)
 	}
 
-	strategies := tgstrategy.Strategies{
-		tgstrategy.NewMessageStrategy(taskUsecase, userUsecase, redisCache),
-		tgstrategy.NewInlineStrategy(taskUsecase, userUsecase, redisCache),
-	}
-
-	router := tgstrategy.NewRouter(strategies)
+	router := tgrouter.NewRouter()
+	router.AddStrategy(tgdto.MessageTypeText, tgstrategy.NewMessageStrategy(taskUsecase, userUsecase, redisCache))
+	router.AddStrategy(tgdto.MessageTypeInline, tgstrategy.NewInlineStrategy(taskUsecase, userUsecase, redisCache))
 
 	tgHandler := tg.NewHandler()
 
@@ -86,7 +84,7 @@ func main() {
 func handleUpdate(
 	update tgbotapi.Update,
 	tgHandler *tg.Handler,
-	router tgstrategy.Router,
+	router tgrouter.Router,
 	bot *tgbotapi.BotAPI,
 	tgUpdateParser tg_parse_update.TgUpdateParser,
 	chanErr chan error) {

@@ -1,17 +1,14 @@
-package tgstrategy
+package inline_action
 
 import (
 	"github.com/petryashin/TaskTrackerBot/internal/domain/entity/task"
 	"github.com/petryashin/TaskTrackerBot/internal/domain/entity/user"
-	tgdto "github.com/petryashin/TaskTrackerBot/internal/handler/tg/dto"
-	action_dto "github.com/petryashin/TaskTrackerBot/internal/handler/tg/strategy/action/dto"
 )
 
-type ActionInterface interface {
-	Handle(tgdto.DTO) (action_dto.ActionDTO, error)
-}
-
-type Actions map[string]ActionInterface
+const (
+	AddTaskActionText    = "Напишите текст задачи"
+	RemoveTaskActionText = "Напишите номер задачи, которую нужно удалить"
+)
 
 type TaskInterface interface {
 	Add(userId int64, message string) (err error)
