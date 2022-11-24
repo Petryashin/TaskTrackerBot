@@ -18,7 +18,14 @@ func (h *Handler) Handle(dto tgdto.DTO, router tgrouter.Router) (tgbotapi.Chatta
 
 	strategy := router.ParseStrategy(dto)
 
-	reply, _ := strategy.Handle(dto)
+	replyDTO, err := strategy.Handle(dto)
+	if err != nil {
+		return tgbotapi.MessageConfig{}, err
+	}
+	msg := tgbotapi.NewMessage(replyDTO.ChatId, replyDTO.Reply.Message)
+	if replyDTO.Reply.Keyboard != nil {
+		msg.ReplyMarkup = *replyDTO.Reply.Keyboard
+	}
 
-	return reply, nil
+	return msg, nil
 }

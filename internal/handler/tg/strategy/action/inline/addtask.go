@@ -13,5 +13,7 @@ func NewAddTaskAction() AddTaskAction {
 }
 
 func (a AddTaskAction) Handle(dto tgdto.DTO) (action_dto.ActionDTO, error) {
-	return action_dto.ActionDTO{System: dto.System, ReplyChatID: dto.User.TgId, ReplyText: AddTaskActionText}, nil
+	return action_dto.ActionDTO{
+		System:    dto.System,
+		ReplyText: AddTaskActionText}, nil
 }

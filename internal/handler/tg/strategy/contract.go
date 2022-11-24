@@ -7,12 +7,6 @@ import (
 	action_dto "github.com/petryashin/TaskTrackerBot/internal/handler/tg/strategy/action/dto"
 )
 
-const (
-	Main    = "main"
-	AddTask = "addTask"
-	RmTask  = "rmTask"
-)
-
 type ActionInterface interface {
 	Handle(tgdto.DTO) (action_dto.ActionDTO, error)
 }

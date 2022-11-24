@@ -1,13 +1,23 @@
 package message_action
 
 import (
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"github.com/petryashin/TaskTrackerBot/internal/domain/entity/task"
 	"github.com/petryashin/TaskTrackerBot/internal/domain/entity/user"
+	strategy_constant "github.com/petryashin/TaskTrackerBot/internal/handler/tg/strategy/constant"
 )
 
 const (
 	incorrectRemovingTaskNumberText = "Введите корректный номер задачи"
+	MustBeNumeric                   = "Номер задачи должен быть числом"
 	unsuccessfulRemovingTaskText    = "Не удалось удалить задачу"
+)
+
+var numericKeyboard = tgbotapi.NewInlineKeyboardMarkup(
+	tgbotapi.NewInlineKeyboardRow(
+		tgbotapi.NewInlineKeyboardButtonData("Добавить задачу", strategy_constant.AddTask),
+		tgbotapi.NewInlineKeyboardButtonData("Удалить задачу", strategy_constant.RmTask),
+	),
 )
 
 type TaskInterface interface {
