@@ -2,9 +2,9 @@ package message_action
 
 import (
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
-	"github.com/petryashin/TaskTrackerBot/internal/domain/entity/task"
-	"github.com/petryashin/TaskTrackerBot/internal/domain/entity/user"
 	strategy_constant "github.com/petryashin/TaskTrackerBot/internal/handler/tg/strategy/constant"
+	task_usecase "github.com/petryashin/TaskTrackerBot/internal/usecase/task"
+	user_usecase "github.com/petryashin/TaskTrackerBot/internal/usecase/user"
 )
 
 const (
@@ -20,19 +20,9 @@ var numericKeyboard = tgbotapi.NewInlineKeyboardMarkup(
 	),
 )
 
-type TaskInterface interface {
-	Add(userId int64, message string) (err error)
-	Remove(taskId int64) error
-	List(chatId int64) ([]task.Task, error)
-}
+type TaskInterface task_usecase.TaskInterface
 
-type UserInterface interface {
-	Create(chatId int64, name string) (user.User, error)
-	Remove(userId int64) error
-	List() ([]user.User, error)
-	FindOne(id int64) (user.User, error)
-	FindOneByTgId(id int64) (user.User, error)
-}
+type UserInterface user_usecase.UserInterface
 
 type RedisCacheInterface interface {
 	Set(key string, json string) error

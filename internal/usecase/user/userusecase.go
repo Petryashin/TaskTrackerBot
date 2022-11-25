@@ -13,6 +13,7 @@ type UserInterface interface {
 	List() ([]user.User, error)
 	FindOne(id int64) (user.User, error)
 	FindOneByTgId(id int64) (user.User, error)
+	FirstOrCreateUser(id int64, name string) (user.User, error)
 }
 
 type userUsecase struct {
@@ -38,6 +39,16 @@ func (u userUsecase) FindOne(id int64) (user.User, error) {
 }
 func (u userUsecase) FindOneByTgId(id int64) (user.User, error) {
 	return u.r.FindOneByTgId(*u.ctx, strconv.FormatInt(id, 10))
+}
+func (u userUsecase) FirstOrCreateUser(id int64, name string) (user.User, error) {
+	usr, err := u.FindOneByTgId(id)
+	if err != nil {
+		usr, err = u.Create(id, name)
+		if err != nil {
+			return user.User{}, err
+		}
+	}
+	return usr, nil
 }
 func NewUserUsecase(userRepository userdb.UserRepository, ctx context.Context) UserInterface {
 	return userUsecase{r: userRepository, ctx: &ctx}

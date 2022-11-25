@@ -8,9 +8,9 @@ import (
 )
 
 type Config struct {
-	Pgx   StorageConfig `envPrefix:"PGX_"`
+	Pgx   StorageConfig `envPrefix:"POSTGRES_"`
 	TgBot TgBotConfig
-	Redis RedisConfig
+	Redis RedisConfig `envPrefix:"REDIS_"`
 }
 
 type TgBotConfig struct {
@@ -18,13 +18,14 @@ type TgBotConfig struct {
 }
 
 type RedisConfig struct {
-	Password string `env:"REDIS_PASSWORD"`
+	Host     string `env:"HOST"`
+	Password string `env:"PASSWORD"`
 }
 
 type StorageConfig struct {
 	Host     string `env:"HOST" envDefault:"localhost"`
 	Port     string `env:"PORT" envDefault:"5432"`
-	Database string `env:"DATABASE" envDefault:"app"`
+	Database string `env:"DB" envDefault:"app"`
 	Username string `env:"USERNAME" envDefault:"app"`
 	Password string `env:"PASSWORD" envDefault:"app"`
 }
