@@ -42,6 +42,6 @@ jobs:
             cd /home/petryashin/tracker_bot
             echo $GITHUB_REPOSITORY - $GITHUB_TOKEN
             git pull
-            $GITHUB_PASSWORD | sudo -S docker-compose build go
-            $GITHUB_PASSWORD | sudo -S docker-compose up -d --remove-orphans
-            $GITHUB_PASSWORD | sudo -S docker image prune
+            echo $GITHUB_PASSWORD | sudo -S docker-compose build go
+            echo $GITHUB_PASSWORD | sudo -S docker-compose up -d --remove-orphans
+            echo $GITHUB_PASSWORD | sudo -S docker image prune
