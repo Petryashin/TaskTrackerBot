@@ -7,9 +7,9 @@ import (
 	"github.com/petryashin/TaskTrackerBot/internal/config"
 	task "github.com/petryashin/TaskTrackerBot/internal/domain/entity/task/db"
 	user "github.com/petryashin/TaskTrackerBot/internal/domain/entity/user/db"
+	tg_gateway "github.com/petryashin/TaskTrackerBot/internal/gateway/tg"
 	tgrouter "github.com/petryashin/TaskTrackerBot/internal/handler/tg/router"
 	task_usecase "github.com/petryashin/TaskTrackerBot/internal/usecase/task"
-	tg_parse_update "github.com/petryashin/TaskTrackerBot/internal/usecase/tg"
 	user_usecase "github.com/petryashin/TaskTrackerBot/internal/usecase/user"
 	"log"
 
@@ -38,10 +38,8 @@ func main() {
 	userUsecase := user_usecase.NewUserUsecase(userRepository, context.TODO())
 	taskUsecase := task_usecase.NewTaskUsecase(taskRepository, context.TODO())
 
-	tgUpdateParser := tg_parse_update.CreateTgUpdateParser(userUsecase)
-
 	redisClient := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
+		Addr:     configs.Redis.Host + ":6379",
 		Password: configs.Redis.Password,
 		DB:       0,
 	})
@@ -57,60 +55,19 @@ func main() {
 	router.AddStrategy(tgdto.MessageTypeText, tgstrategy.NewMessageStrategy(taskUsecase, userUsecase, redisCache))
 	router.AddStrategy(tgdto.MessageTypeInline, tgstrategy.NewInlineStrategy(taskUsecase, userUsecase, redisCache))
 
-	tgHandler := tg.NewHandler()
+	tgHandler := tg.NewHandler(router)
 
 	bot := cmd.MustInitTgbot(configs.TgBot.BotApiKey)
 	bot.Debug = true
 
-	log.Printf("Authorized on account %s", bot.Self.UserName)
+	tgGateway := tg_gateway.NewTgGateway(userUsecase, tgHandler, bot)
 
+	log.Printf("Authorized on account %s", bot.Self.UserName)
 	u := tgbotapi.NewUpdate(0)
 	u.Timeout = 60
-
 	updates := bot.GetUpdatesChan(u)
-	chanErr := make(chan error)
 
-	for {
-		select {
-		case err := <-chanErr:
-			log.Print("error tg Handle", err)
-		case update := <-updates:
-			go handleUpdate(update, tgHandler, router, bot, tgUpdateParser, chanErr)
-		}
-	}
-
-}
-
-func handleUpdate(
-	update tgbotapi.Update,
-	tgHandler *tg.Handler,
-	router tgrouter.Router,
-	bot *tgbotapi.BotAPI,
-	tgUpdateParser tg_parse_update.TgUpdateParser,
-	chanErr chan error) {
-
-	dto, err := tgUpdateParser.Parse(update)
-	if err != nil {
-		chanErr <- err
-		return
-	}
-	//TODO: перепроектировать handling
-	if dto.System.MessageType == tgdto.MessageTypeInline {
-		go func() {
-			callback := tgbotapi.NewCallback(update.CallbackQuery.ID, update.CallbackQuery.Data)
-			if _, err := bot.Request(callback); err != nil {
-				chanErr <- err
-			}
-		}()
-	}
-
-	msg, err := tgHandler.Handle(dto, router)
-	if err != nil {
-		chanErr <- err
-	} else {
-		_, err = bot.Send(msg)
-		if err != nil {
-			chanErr <- err
-		}
-	}
+	inputDTOChan := tgGateway.ParseUpdate(updates)
+	chanErr := tgGateway.ExecuteResponse(inputDTOChan)
+	tgGateway.ErrorHandling(chanErr)
 }

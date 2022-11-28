@@ -1,31 +1,31 @@
 package tg
 
 import (
-	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	tgdto "github.com/petryashin/TaskTrackerBot/internal/handler/tg/dto"
 	tgrouter "github.com/petryashin/TaskTrackerBot/internal/handler/tg/router"
 )
 
+type HandlerInterface interface {
+	Handle(dto tgdto.DTO) (tgdto.ReplyDTO, error)
+}
+
 type Handler struct {
+	router tgrouter.Router
 }
 
-func NewHandler() *Handler {
-	return &Handler{}
+func NewHandler(router tgrouter.Router) Handler {
+	return Handler{router: router}
 }
 
-func (h *Handler) Handle(dto tgdto.DTO, router tgrouter.Router) (tgbotapi.Chattable, error) {
+func (h Handler) Handle(dto tgdto.DTO) (tgdto.ReplyDTO, error) {
 	// log.Printf("[%s] %s", update.Message.From.UserName, update.Message.Text)
 
-	strategy := router.ParseStrategy(dto)
+	strategy := h.router.ParseStrategy(dto)
 
 	replyDTO, err := strategy.Handle(dto)
 	if err != nil {
-		return tgbotapi.MessageConfig{}, err
-	}
-	msg := tgbotapi.NewMessage(replyDTO.ChatId, replyDTO.Reply.Message)
-	if replyDTO.Reply.Keyboard != nil {
-		msg.ReplyMarkup = *replyDTO.Reply.Keyboard
+		return tgdto.ReplyDTO{}, err
 	}
 
-	return msg, nil
+	return replyDTO, nil
 }

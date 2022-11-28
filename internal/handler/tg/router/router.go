@@ -4,6 +4,9 @@ import (
 	tgdto "github.com/petryashin/TaskTrackerBot/internal/handler/tg/dto"
 )
 
+type RouterInterface interface {
+}
+
 type Router struct {
 	strategies Strategies
 }
