@@ -9,6 +9,7 @@ COPY go.sum ./
 # RUN go mod tidy && go mod vendor
 
 # Build our application.
+RUN go mod vendor
 RUN go build -o /usr/local/bin/app ./cmd/service
 
 EXPOSE 8080
