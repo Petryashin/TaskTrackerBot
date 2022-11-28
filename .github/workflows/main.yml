@@ -31,8 +31,9 @@ jobs:
           GITHUB_USER: ${{ github.actor }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_REPOSITORY: ${{ github.repository }}
+          GITHUB_PASSWORD: ${{ secrets.PASSWORD }}
         with:
-          envs: GITHUB_USER,GITHUB_TOKEN,GITHUB_REPOSITORY
+          envs: GITHUB_USER,GITHUB_TOKEN,GITHUB_REPOSITORY,GITHUB_PASSWORD
           host: ${{ secrets.HOST }}
           username: ${{ secrets.USERNAME }}
           key: ${{ secrets.KEY }}
@@ -41,6 +42,6 @@ jobs:
             cd /home/petryashin/tracker_bot
             echo $GITHUB_REPOSITORY - $GITHUB_TOKEN
             git pull
-            docker-compose build go
-            docker-compose up -d --remove-orphans
-            docker image prune
+            $GITHUB_PASSWORD | sudo -S docker-compose build go
+            $GITHUB_PASSWORD | sudo -S docker-compose up -d --remove-orphans
+            $GITHUB_PASSWORD | sudo -S docker image prune
