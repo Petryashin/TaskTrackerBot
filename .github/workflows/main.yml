@@ -40,7 +40,7 @@ jobs:
           script: |
             cd /home/petryashin/tracker_bot
             echo $GITHUB_REPOSITORY - $GITHUB_TOKEN
-            git clone https://$GITHUB_TOKEN@github.com/$GITHUB_REPOSITORY.git .
+            git pull
             docker-compose build go
             docker-compose up -d --remove-orphans
             docker image prune
