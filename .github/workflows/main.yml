@@ -1,0 +1,46 @@
+name: CI-Pipeline
+
+on:
+  push:
+    branches:
+      - main
+env:
+  APPLICATION_NAME: "Task Tracker Bot"
+  
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Nothing to do
+        run: echo "The tests don't exist now"
+
+  migrations:
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - name: Execute migrations
+        run: echo "The migrations aren't automated now"
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [test, migrations]
+    steps:
+      - name: Build and Run Application
+        uses: appleboy/ssh-action@master
+        env:
+          GITHUB_USER: ${{ github.actor }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        with:
+          envs: GITHUB_USER,GITHUB_TOKEN,GITHUB_REPOSITORY
+          host: ${{ secrets.HOST }}
+          username: ${{ secrets.USERNAME }}
+          key: ${{ secrets.KEY }}
+          port: ${{ secrets.PORT }}
+          script: |
+            cd /home/petryashin/tracker_bot
+            echo $GITHUB_REPOSITORY - $GITHUB_TOKEN
+            git clone https://$GITHUB_TOKEN@github.com/$GITHUB_REPOSITORY.git .
+            docker-compose build go
+            docker-compose up -d --remove-orphans
+            docker image prune
